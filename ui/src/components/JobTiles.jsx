@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Table, message } from 'antd';
+import { Table, Button, Modal, message } from 'antd';
 import JobPostingForm from './JobPostingForm';
+import PlaceBidModal from './PlaceBidModal';
 
 const JobTiles = () => {
   const [recentJobs, setRecentJobs] = useState([]);
   const [activeJobs, setActiveJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isBidModalVisible, setIsBidModalVisible] = useState(false);
+  const [isJobModalVisible, setIsJobModalVisible] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState(null);
 
   const fetchJobs = async () => {
     try {
@@ -27,8 +31,32 @@ const JobTiles = () => {
     fetchJobs();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  const showBidModal = (jobId) => {
+    setSelectedJobId(jobId);
+    setIsBidModalVisible(true);
+  };
+
+  const handleBidCancel = () => {
+    setIsBidModalVisible(false);
+    setSelectedJobId(null);
+  };
+
+  const handleBidPlaced = () => {
+    fetchJobs();
+  };
+
+  const showJobModal = () => {
+    setIsJobModalVisible(true);
+  };
+
+  const handleJobCancel = () => {
+    setIsJobModalVisible(false);
+  };
+
+  const handleJobPosted = () => {
+    fetchJobs();
+    setIsJobModalVisible(false);
+  };
 
   const columns = [
     {
@@ -63,17 +91,48 @@ const JobTiles = () => {
       key: 'expiration_date',
       render: (text) => new Date(text).toLocaleString(),
     },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (text, record) => (
+        <Button type="primary" onClick={() => showBidModal(record.id)}>
+          Place Bid
+        </Button>
+      ),
+    },
   ];
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
     <div>
+      <Button type="primary" onClick={showJobModal}>
+        Post a New Job
+      </Button>
       <h2>Recent Jobs</h2>
       <Table columns={columns} dataSource={recentJobs} rowKey="id" />
 
       <h2>Active Jobs</h2>
       <Table columns={columns} dataSource={activeJobs} rowKey="id" />
 
-      <JobPostingForm onJobPosted={fetchJobs} />
+      
+
+      <PlaceBidModal
+        visible={isBidModalVisible}
+        onCancel={handleBidCancel}
+        jobId={selectedJobId}
+        onBidPlaced={handleBidPlaced}
+      />
+
+      <Modal
+        title="Post a New Job"
+        visible={isJobModalVisible}
+        onCancel={handleJobCancel}
+        footer={null}
+      >
+        <JobPostingForm onJobPosted={handleJobPosted} />
+      </Modal>
     </div>
   );
 };
